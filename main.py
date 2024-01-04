@@ -70,3 +70,5 @@ def get_location(message, name, number):
 
 bot.polling(non_stop=True)
 
+
+
