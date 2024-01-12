@@ -96,6 +96,12 @@ def clear_cart(user_id):
     base.commit()
 
 
+def check_cart(id):
+    if sql.execute('SELECT user_product FROM cart WHERE user_id=?;', (id, )).fetchall():
+        return True
+    else:
+        return False
+
 #  Get order
 def make_order(user_id):
     pr_name = sql.execute('SELECT user_product FROM cart WHERE user_id=?;', (user_id, )).fetchone()
