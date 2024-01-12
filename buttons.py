@@ -31,6 +31,7 @@ def main_memu_buttons(pr_from_db):
     # Add buttons in environment
     kb.add(*all_products)
     kb.row(cart)
+    return kb
 
 # Button for choice count
 def choice_pr_count(amount=1, plus_or_minus=''):
@@ -53,6 +54,16 @@ def choice_pr_count(amount=1, plus_or_minus=''):
     # Add buttons in environment
     kb.add(minus, count, plus)
     kb.row(back, to_cart)
+    return kb
+
+
+def cart_buttons():
+    kb = types.InlineKeyboardMarkup(row_width=2)
+    order = types.InlineKeyboardButton(text='Order', callback_data='order')
+    clear = types.InlineKeyboardButton(text='Clear', callback_data='clear')
+    back = types.InlineKeyboardButton(text='Back', callback_data='back')
+    kb.add(order, clear)
+    kb.row(back)
     return kb
 
 # Buttons for admin
