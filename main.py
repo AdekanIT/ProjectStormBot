@@ -24,14 +24,15 @@ def start(message):
         products = db.get_pr_but()
         bot.send_message(user_id, f'Hello {message.from_user.first_name}\n!'
                                   'Welcome back to our Storm Store or short format SS',
-                                  reply_markup=bt.main_memu_buttons(products))
+                         reply_markup=bt.main_memu_buttons(products))
     else:
         bot.send_message(user_id, f'Hello {message.from_user.first_name}!\n'
-                         "Welcome to our Storm Store\n"
-                         "Let's registrate you in Store base!\n"
-                         "Please enter your name")
+                                  "Welcome to our Storm Store\n"
+                                  "Let's registrate you in Store base!\n"
+                                  "Please enter your name")
         # Link to take name
         bot.register_next_step_handler(message, get_name)
+
 
 # Step to take name
 def get_name(message):
@@ -41,6 +42,7 @@ def get_name(message):
                      reply_markup=bt.num_bt())
     # Link to take phone number
     bot.register_next_step_handler(message, get_number, name)
+
 
 # Step to take phone number
 def get_number(message, name):
@@ -57,6 +59,7 @@ def get_number(message, name):
         bot.send_message(user_id, 'Please send your phone number by button!',
                          reply_markup=bt.num_bt())
         bot.register_next_step_handler(message, get_number, name)
+
 
 # Step for add location
 def get_location(message, name, number):
@@ -105,9 +108,11 @@ def choice_count(call):
         bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
         bot.send_message(chat_id, 'Products add to cart!', reply_markup=bt.cart_buttons())
 
+
 # Cart
 @bot.callback_query_handler(lambda call: call.data in ['cart', 'back', 'order', 'clear'])
 def cart_handler(call):
+    user_id = call.message.from_user.id
     chat_id = call.message.chat.id
     products = db.get_pr_but()
     chat = db.show_cart(chat_id)
@@ -120,11 +125,11 @@ def cart_handler(call):
         group_id = -1002145763729
         cart = db.make_order(chat_id)
         print(cart)
-        text = f'New order\n\n'\
-               f'user id: {cart[0][0]}\n'\
-               f'product: {cart[0][1]}\n'\
-               f'Count: {cart[0][2]}\n'\
-               f'Cost: {cart[0][3]}\n\n'\
+        text = f'New order\n\n' \
+               f'user id: {cart[0][0]}\n' \
+               f'product: {cart[0][1]}\n' \
+               f'Count: {cart[0][2]}\n' \
+               f'Cost: {cart[0][3]}\n\n' \
                f'Address: {cart[1][0]}'
         bot.send_message(group_id, text)
         bot.edit_message_text('Thanks for order!', chat_id=chat_id, message_id=call.message.message_id,
@@ -133,14 +138,19 @@ def cart_handler(call):
         bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
         bot.send_message(chat_id, 'Back to menu!', reply_markup=bt.main_memu_buttons(products))
     elif call.data == 'cart':
-        cart = db.show_cart(chat_id)
-        text = f'Your cart!\n\n'\
-               f'Products: {cart[0]}\n'\
-               f'Count: {cart[1]}\n'\
-               f'Cost: {cart[2]}\n\n'\
-               f'What you want now!'
-        bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
-        bot.send_message(chat_id, text, reply_markup=bt.cart_buttons())
+        check = db.check_cart(user_id)
+        if check:
+            cart = db.show_cart(chat_id)
+            text = f'Your cart!\n\n' \
+                   f'Products: {cart[0]}\n' \
+                   f'Count: {cart[1]}\n' \
+                   f'Cost: {cart[2]}\n\n' \
+                   f'What you want now!'
+            bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
+            bot.send_message(chat_id, text, reply_markup=bt.cart_buttons())
+        else:
+            bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
+            bot.send_message(chat_id, 'Your cart is empty yet!')
 
 # Show information about products
 @bot.callback_query_handler(lambda call: int(call.data) in db.get_pr_name_id())
@@ -149,9 +159,9 @@ def get_user_product(call):
     prod = db.get_pr(int(call.data))
     users[chat_id] = {'pr_name': call.data, 'pr_amount': 1}
     bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
-    text = f'Name product: {prod[0]}\n'\
-           f'Description product: {prod[1]}\n'\
-           f'Count of products: {prod[2]}\n'\
+    text = f'Name product: {prod[0]}\n' \
+           f'Description product: {prod[1]}\n' \
+           f'Count of products: {prod[2]}\n' \
            f'Price: {prod[4]}$'
     bot.send_photo(chat_id, photo=prod[3], caption=text, reply_markup=bt.choice_pr_count())
 
@@ -165,6 +175,7 @@ def act(message):
         bot.register_next_step_handler(message, admin_choice)
     else:
         bot.send_message(message.from_user.id, 'You are not admin!')
+
 
 # Choice admin action
 def admin_choice(message):
@@ -189,7 +200,7 @@ def admin_choice(message):
                              reply_markup=telebot.types.ReplyKeyboardRemove())
             bot.register_next_step_handler(message, get_pr_change)
         else:
-            bot.send_message(admin_id, 'Product not exist in base yet!',)
+            bot.send_message(admin_id, 'Product not exist in base yet!', )
             bot.register_next_step_handler(message, admin_choice)
     elif message.text == 'Go to menu':
         products = db.get_pr_but()
@@ -198,6 +209,7 @@ def admin_choice(message):
     else:
         bot.send_message(admin_id, 'Unknown command!', reply_markup=bt.admin_menu())
         bot.register_next_step_handler(message, admin_choice)
+
 
 # Step to take name odf product
 def get_pr_name(message):
@@ -211,6 +223,7 @@ def get_pr_name(message):
         bot.send_message(admin_id, 'Send name of product by text format!')
         bot.register_next_step_handler(message, get_pr_name)
 
+
 # Step for make description for product
 def get_pr_des(message, pr_name):
     admin_id = 5239314473
@@ -222,6 +235,7 @@ def get_pr_des(message, pr_name):
     else:
         bot.send_message(admin_id, 'Send description of product by text format!')
         bot.register_next_step_handler(message, get_pr_des, pr_name)
+
 
 # Step to take count of product
 def get_pr_count(message, pr_name, pr_des):
@@ -237,6 +251,7 @@ def get_pr_count(message, pr_name, pr_des):
         #  Return to the function
         bot.register_next_step_handler(message, get_pr_count, pr_name, pr_des)
 
+
 # Step to take a photo for product
 def get_pr_photo(message, pr_name, pr_des, pr_count):
     admin_id = 5239314473
@@ -248,6 +263,7 @@ def get_pr_photo(message, pr_name, pr_des, pr_count):
     else:
         bot.send_message(admin_id, 'Incorrect format link!')
         bot.register_next_step_handler(message, get_pr_photo, pr_name, pr_des, pr_count)
+
 
 # Step to take cost
 def get_pr_cost(message, pr_name, pr_des, pr_count, pr_photo):
@@ -261,6 +277,7 @@ def get_pr_cost(message, pr_name, pr_des, pr_count, pr_photo):
         bot.send_message(admin_id, 'Send price in positive format!')
         #  Return to the function
         bot.register_next_step_handler(message, get_pr_cost, pr_name, pr_des, pr_count, pr_photo)
+
 
 # Step to get product by id
 def get_pr_id(message):
@@ -283,6 +300,7 @@ def get_pr_id(message):
         #  Return to the function
         bot.register_next_step_handler(message, get_pr_id)
 
+
 # Step change count of product
 def get_pr_change(message):
     admin_id = 5239314473
@@ -303,6 +321,7 @@ def get_pr_change(message):
         #  Return to the function
         bot.register_next_step_handler(message, get_pr_change)
 
+
 # Step to "how many came?"
 def get_amount(message, pr_id):
     admin_id = 5239314473
@@ -319,6 +338,3 @@ def get_amount(message, pr_id):
 
 # Start product
 bot.polling(non_stop=True)
-
-
-
