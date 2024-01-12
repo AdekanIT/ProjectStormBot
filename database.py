@@ -35,8 +35,7 @@ def checker(id):
 
 # Method for take all information about products
 def get_pr(id):
-    result = sql.execute('SELECT id, pr_name, pr_des, pr_count, pr_photo, pr_price FROM products'
-                         'WHERE id=?;', (id,))
+    result = sql.execute('SELECT pr_name, pr_des, pr_count, pr_photo, pr_price FROM products WHERE id=?;', (id,))
     return result.fetchone()
 
 # Method for show product in buttons
@@ -73,6 +72,10 @@ def add_pr_cart(user_id, user_product, pr_amount, total):
     # Save changes
     base.commit()
 
+def get_pr_name_id():
+    prods = sql.execute('SELECT id, pr_count FROM products;').fetchall()
+    all_prods = [i[0] for i in prods if i[1] > 0]
+    return all_prods
 
 def check_pr():
     if sql.execute('SELECT * FROM products').fetchall():
@@ -87,13 +90,28 @@ def check_pr_id(id):
     else:
         return False
 
+# Clear cart
+def clear_cart(user_id):
+    sql.execute('DELETE FROM cart WHERE user_id=?;', (user_id, ))
+    base.commit()
 
 
+#  Get order
+def make_order(user_id):
+    pr_name = sql.execute('SELECT user_product FROM cart WHERE user_id=?;', (user_id, )).fetchone()
+    amount = sql.execute('SELECT pr_amount FROM cart WHERE user_id=?;', (user_id, )).fetchone()
+    pr_quantity = sql.execute('SELECT pr_count FROM products WHERE pr_name=?;', (pr_name[0], )).fetchone()
+    new_quantity = pr_quantity[0] - amount[0]
+    sql.execute('UPDATE products SET pr_count=? WHERE pr_name=?;', (new_quantity, pr_name[0]))
+    info = sql.execute('SELECT * FROM cart WHERE user_id=?;', (user_id, )).fetchone()
+    address = sql.execute('SELECT location FROM users WHERE id=?;', (user_id, )).fetchone()
+    # Save changes
+    base.commit()
+    return info, address
 
-
-
-
-
+# Show cart
+def show_cart(user_id):
+    return sql.execute('SELECT user_product, pr_amount, total FROM cart WHERE user_id=?;', (user_id, )).fetchone()
 
 
 
