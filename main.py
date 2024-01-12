@@ -8,6 +8,11 @@ bot = telebot.TeleBot('6886952357:AAEVGO1qD-1Zefk7YG-CpkTuGas4w9cFP0k')
 # Use map
 geolocation = Nominatim(user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                                    '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+
+# For sometime data
+users = {}
+
+
 # Command /start in bot
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -69,6 +74,86 @@ def get_location(message, name, number):
         bot.send_message(user_id, 'Please send your location by button!',
                          reply_markup=bt.loc_bt())
         bot.register_next_step_handler(message, get_location, name, number)
+
+
+# Function of choice count
+@bot.callback_query_handler(lambda call: call.data in ['back', 'to_cart', 'increment', 'decrement'])
+def choice_count(call):
+    chat_id = call.message.chat.id
+
+    if call.data == 'increment':
+        count = users[chat_id]['pr_amount']
+        users[chat_id]['pr_amount'] += 1
+        bot.edit_message_reply_markup(chat_id=chat_id, message_id=call.message.message_id,
+                                      reply_markup=bt.choice_pr_count(count, 'increment'))
+    elif call.data == 'decrement':
+        count = users[chat_id]['pr_amount']
+        users[chat_id]['pr_amount'] -= 1
+        bot.edit_message_reply_markup(chat_id=chat_id, message_id=call.message.message_id,
+                                      reply_markup=bt.choice_pr_count(count, 'decrement'))
+    elif call.data == 'back':
+        products = db.get_pr_but()
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
+        bot.send_message(chat_id, 'Return you to main menu',
+                         reply_markup=bt.main_memu_buttons(products))
+    elif call.data == 'to_cart':
+        products = db.get_pr(users[chat_id]['pr_name'])
+        prod_amount = users[chat_id]['pr_amount']
+        user_total = products[4] * prod_amount
+
+        db.add_pr_cart(chat_id, products[0], prod_amount, user_total)
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
+        bot.send_message(chat_id, 'Products add to cart!', reply_markup=bt.cart_buttons())
+
+# Cart
+@bot.callback_query_handler(lambda call: call.data in ['cart', 'back', 'order', 'clear'])
+def cart_handler(call):
+    chat_id = call.message.chat.id
+    products = db.get_pr_but()
+    chat = db.show_cart(chat_id)
+
+    if call.data == 'clear':
+        db.clear_cart(chat_id)
+        bot.edit_message_text('Your cart is clear, choose new products!', chat_id=chat_id,
+                              message_id=call.message.message_id, reply_markup=bt.main_memu_buttons(products))
+    elif call.data == 'order':
+        group_id = -1002145763729
+        cart = db.make_order(chat_id)
+        print(cart)
+        text = f'New order\n\n'\
+               f'user id: {cart[0][0]}\n'\
+               f'product: {cart[0][1]}\n'\
+               f'Count: {cart[0][2]}\n'\
+               f'Cost: {cart[0][3]}\n\n'\
+               f'Address: {cart[1][0]}'
+        bot.send_message(group_id, text)
+        bot.edit_message_text('Thanks for order!', chat_id=chat_id, message_id=call.message.message_id,
+                              reply_markup=bt.main_memu_buttons(products))
+    elif call.data == 'back':
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
+        bot.send_message(chat_id, 'Back to menu!', reply_markup=bt.main_memu_buttons(products))
+    elif call.data == 'cart':
+        cart = db.show_cart(chat_id)
+        text = f'Your cart!\n\n'\
+               f'Products: {cart[0]}\n'\
+               f'Count: {cart[1]}\n'\
+               f'Cost: {cart[2]}\n\n'\
+               f'What you want now!'
+        bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
+        bot.send_message(chat_id, text, reply_markup=bt.cart_buttons())
+
+# Show information about products
+@bot.callback_query_handler(lambda call: int(call.data) in db.get_pr_name_id())
+def get_user_product(call):
+    chat_id = call.message.chat.id
+    prod = db.get_pr(int(call.data))
+    users[chat_id] = {'pr_name': call.data, 'pr_amount': 1}
+    bot.delete_message(chat_id=chat_id, message_id=call.message.message_id)
+    text = f'Name product: {prod[0]}\n'\
+           f'Description product: {prod[1]}\n'\
+           f'Count of products: {prod[2]}\n'\
+           f'Price: {prod[4]}$'
+    bot.send_photo(chat_id, photo=prod[3], caption=text, reply_markup=bt.choice_pr_count())
 
 
 @bot.message_handler(commands=['admin'])
